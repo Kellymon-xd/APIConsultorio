@@ -1,7 +1,5 @@
 ﻿using ApiConsultorio.Contexts;
 using ApiConsultorio.Models;
-using ApiConsultorio.Contexts;
-using ApiConsultorio.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
@@ -20,22 +18,46 @@ namespace ApiConsultorio.Controllers
             _context = context;
         }
 
-        // ============================
+        // ============================================================
         // GET: Obtener todos los usuarios
-        // ============================
+        // ============================================================
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Usuario>>> GetUsuarios()
+        public async Task<ActionResult> GetUsuarios()
         {
-            return await _context.Usuarios.ToListAsync();
+            var usuarios = await _context.Usuarios
+                .Select(u => new CrearUsuarioDTO
+                {
+                    Nombre = u.Nombre,
+                    Apellido = u.Apellido,
+                    Email = u.Email,
+                    Cedula = u.Cedula,
+                    Telefono = u.Telefono,
+                    IdRol = u.IdRol
+                })
+                .ToListAsync();
+
+            return Ok(usuarios);
         }
 
-        // ============================
-        // GET: Obtener usuario por IdUsuario (A0000001)
-        // ============================
+        // ============================================================
+        // GET: Obtener usuario por ID
+        // ============================================================
         [HttpGet("{id}")]
-        public async Task<ActionResult<Usuario>> GetUsuario(string id)
+        public async Task<ActionResult> GetUsuario(string id)
         {
-            var usuario = await _context.Usuarios.FindAsync(id);
+            var usuario = await _context.Usuarios
+                .Where(x => x.IdUsuario == id)
+                .Select(u => new Usuario
+                {
+                    IdUsuario = u.IdUsuario,
+                    Nombre = u.Nombre,
+                    Apellido = u.Apellido,
+                    Email = u.Email,
+                    Cedula = u.Cedula,
+                    Telefono = u.Telefono,
+                    IdRol = u.IdRol
+                })
+                .FirstOrDefaultAsync();
 
             if (usuario == null)
                 return NotFound();
@@ -43,9 +65,9 @@ namespace ApiConsultorio.Controllers
             return Ok(usuario);
         }
 
-        // ============================
-        // POST: Crear usuario (EL TRIGGER genera Id_Usuario)
-        // ============================
+        // ============================================================
+        // POST: Crear usuario (rol general, NO médico)
+        // ============================================================
         [HttpPost]
         public async Task<ActionResult> CrearUsuario(CrearUsuarioDTO dto)
         {
@@ -66,12 +88,24 @@ namespace ApiConsultorio.Controllers
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
 
+            // crear actividad inicial
+            _context.ActividadUsuarios.Add(new ActividadUsuario
+            {
+                IdUsuario = usuario.IdUsuario,
+                Activo = true,
+                Bloqueado = false,
+                IntentosFallidos = 0,
+                UltimaActividad = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+
             return Ok("Usuario creado correctamente.");
         }
 
-        // ============================
-        // POST: Login
-        // ============================
+        // ============================================================
+        // LOGIN
+        // ============================================================
         [HttpPost("login")]
         public async Task<ActionResult> Login(LoginDTO dto)
         {
@@ -93,9 +127,9 @@ namespace ApiConsultorio.Controllers
             });
         }
 
-        // ============================
-        // PUT: Actualizar usuario
-        // ============================
+        // ============================================================
+        // PUT: Actualizar datos básicos
+        // ============================================================
         [HttpPut("{id}")]
         public async Task<ActionResult> ActualizarUsuario(string id, ActualizarUsuarioDTO dto)
         {
@@ -114,11 +148,11 @@ namespace ApiConsultorio.Controllers
             return Ok("Usuario actualizado correctamente.");
         }
 
-        // ============================
-        // PUT: Actualizar contraseña
-        // ============================
+        // ============================================================
+        // PUT: Cambiar contraseña
+        // ============================================================
         [HttpPut("cambiar-password/{id}")]
-        public async Task<ActionResult> CambiarPassword(string id, string nuevaPassword)
+        public async Task<ActionResult> CambiarPassword(string id, [FromBody] string nuevaPassword)
         {
             var usuario = await _context.Usuarios.FindAsync(id);
 
@@ -132,11 +166,11 @@ namespace ApiConsultorio.Controllers
             return Ok("Contraseña actualizada.");
         }
 
-        // ============================
+        // ============================================================
         // PUT: Bloquear / Desbloquear usuario
-        // ============================
+        // ============================================================
         [HttpPut("estado/{id}")]
-        public async Task<ActionResult> CambiarEstado(string id, bool bloquear)
+        public async Task<ActionResult> CambiarEstado(string id, [FromBody] bool bloquear)
         {
             var actividad = await _context.ActividadUsuarios.FindAsync(id);
 
@@ -151,9 +185,9 @@ namespace ApiConsultorio.Controllers
             return Ok(bloquear ? "Usuario bloqueado." : "Usuario activado.");
         }
 
-        // ============================
-        // DELETE: Eliminar usuario
-        // ============================
+        // ============================================================
+        // DELETE
+        // ============================================================
         [HttpDelete("{id}")]
         public async Task<ActionResult> EliminarUsuario(string id)
         {
@@ -163,15 +197,14 @@ namespace ApiConsultorio.Controllers
                 return NotFound();
 
             _context.Usuarios.Remove(usuario);
-
             await _context.SaveChangesAsync();
 
             return Ok("Usuario eliminado.");
         }
 
-        // ============================
-        // MÉTODO PARA HASH SHA256
-        // ============================
+        // ============================================================
+        // HASH
+        // ============================================================
         private static string HashSHA256(string input)
         {
             using var sha = SHA256.Create();

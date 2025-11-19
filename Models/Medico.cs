@@ -24,5 +24,17 @@ namespace ApiConsultorio.Models
         public string? Telefono_Consulta { get; set; }
 
         public bool Activo { get; set; }
+
+        // ================================
+        // PROPIEDADES DE NAVEGACIÓN
+        // ================================
+        [ForeignKey("Id_Usuario")]
+        public virtual Usuario Usuario { get; set; }
+
+        [ForeignKey("ID_Especialidad")]
+        public virtual Especialidad Especialidad { get; set; }
+
+        [ForeignKey("ID_Contrato")]
+        public virtual TipoContrato Contrato { get; set; }
     }
 }
