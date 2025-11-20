@@ -21,5 +21,8 @@ namespace ApiConsultorio.Models
 
         [StringLength(400)]
         public string? Observaciones { get; set; }
+
+        [ForeignKey("ID_Cita")]
+        public virtual Cita Cita { get; set; }
     }
 }

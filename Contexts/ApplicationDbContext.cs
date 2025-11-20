@@ -16,7 +16,7 @@ namespace ApiConsultorio.Contexts
         public DbSet<TipoContrato> TipoContrato { get; set; }
         public DbSet<Cita> Citas { get; set; }
         public DbSet<EstadoCita> EstadoCita { get; set; }
-        public DbSet<AtencionMedica> AtencionMedicas { get; set; }
-        public DbSet<AntecedenteMedico> AntecedentesMedicos { get; set; }
+        public DbSet<AtencionMedica> AtencionMedica { get; set; }
+        public DbSet<AntecedentesMedico> AntecedentesMedicos { get; set; }
     }
 }

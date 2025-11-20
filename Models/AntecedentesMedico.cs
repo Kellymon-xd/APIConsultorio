@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace ApiConsultorio.Models
 {
     [Table("ANTECEDENTES_MEDICOS")]
-    public class AntecedenteMedico
+    public class AntecedentesMedico
     {
         [Key]
         public int ID_Antecedente { get; set; }
@@ -21,5 +21,8 @@ namespace ApiConsultorio.Models
         public string? Observaciones_Generales { get; set; }
 
         public DateTime Fecha_Registro { get; set; }
+
+        [ForeignKey("ID_Paciente")]
+        public virtual Paciente Paciente { get; set; }
     }
 }
