@@ -5,8 +5,7 @@ namespace ApiConsultorio.Contexts
 {
     public class ApplicationDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options) { }
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Especialidad> Especialidades { get; set; }

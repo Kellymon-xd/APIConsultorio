@@ -79,7 +79,7 @@ namespace ApiConsultorio.Controllers
                 Cedula = dto.Cedula,
                 Telefono = dto.Telefono,
                 Contrasena = HashSHA256(dto.Contrasena),
-                IdRol = 2 // MEDICO
+                Id_Rol = 2 // MEDICO
             };
 
             _context.Usuarios.Add(usuario);
@@ -89,7 +89,7 @@ namespace ApiConsultorio.Controllers
             // 2. Crear médico
             var medico = new Medico
             {
-                Id_Usuario = usuario.IdUsuario,
+                Id_Usuario = usuario.Id_Usuario,
                 ID_Especialidad = dto.ID_Especialidad,
                 ID_Contrato = dto.ID_Contrato,
                 Horario_Atencion = dto.Horario_Atencion,
@@ -103,7 +103,7 @@ namespace ApiConsultorio.Controllers
             return Ok(new
             {
                 message = "Médico creado correctamente",
-                usuario.IdUsuario,
+                usuario.Id_Usuario,
                 medico.ID_Medico
             });
         }
@@ -171,7 +171,7 @@ namespace ApiConsultorio.Controllers
 
                     Usuario = new
                     {
-                        m.Usuario.IdUsuario,
+                        m.Usuario.Id_Usuario,
                         m.Usuario.Nombre,
                         m.Usuario.Apellido,
                         NombreCompleto = m.Usuario.Nombre + " " + m.Usuario.Apellido,

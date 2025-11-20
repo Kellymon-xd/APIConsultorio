@@ -25,14 +25,14 @@ namespace ApiConsultorio.Controllers
         public async Task<ActionResult> GetUsuarios()
         {
             var usuarios = await _context.Usuarios
-                .Select(u => new CrearUsuarioDTO
+                .Select(u => new MostrarUsuarioDTO
                 {
                     Nombre = u.Nombre,
                     Apellido = u.Apellido,
                     Email = u.Email,
                     Cedula = u.Cedula,
                     Telefono = u.Telefono,
-                    IdRol = u.IdRol
+                    IdRol = u.Id_Rol
                 })
                 .ToListAsync();
 
@@ -46,16 +46,16 @@ namespace ApiConsultorio.Controllers
         public async Task<ActionResult> GetUsuario(string id)
         {
             var usuario = await _context.Usuarios
-                .Where(x => x.IdUsuario == id)
+                .Where(x => x.Id_Usuario == id)
                 .Select(u => new Usuario
                 {
-                    IdUsuario = u.IdUsuario,
+                    Id_Usuario = u.Id_Usuario,
                     Nombre = u.Nombre,
                     Apellido = u.Apellido,
                     Email = u.Email,
                     Cedula = u.Cedula,
                     Telefono = u.Telefono,
-                    IdRol = u.IdRol
+                    Id_Rol = u.Id_Rol
                 })
                 .FirstOrDefaultAsync();
 
@@ -76,28 +76,18 @@ namespace ApiConsultorio.Controllers
 
             var usuario = new Usuario
             {
+                Id_Usuario = String.Empty,
                 Nombre = dto.Nombre,
                 Apellido = dto.Apellido,
                 Email = dto.Email,
                 Cedula = dto.Cedula,
                 Telefono = dto.Telefono,
                 Contrasena = HashSHA256(dto.Contrasena),
-                IdRol = dto.IdRol
+                Id_Rol = dto.IdRol,
+                Fecha_Registro = DateTime.Now
             };
 
             _context.Usuarios.Add(usuario);
-            await _context.SaveChangesAsync();
-
-            // crear actividad inicial
-            _context.ActividadUsuarios.Add(new ActividadUsuario
-            {
-                IdUsuario = usuario.IdUsuario,
-                Activo = true,
-                Bloqueado = false,
-                IntentosFallidos = 0,
-                UltimaActividad = DateTime.Now
-            });
-
             await _context.SaveChangesAsync();
 
             return Ok("Usuario creado correctamente.");
@@ -120,10 +110,10 @@ namespace ApiConsultorio.Controllers
 
             return Ok(new
             {
-                usuario.IdUsuario,
+                usuario.Id_Usuario,
                 usuario.Nombre,
                 usuario.Apellido,
-                usuario.IdRol
+                usuario.Id_Rol
             });
         }
 

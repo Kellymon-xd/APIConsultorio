@@ -9,7 +9,7 @@ namespace ApiConsultorio.Models
         [Key]
         [Column("Id_Usuario")]
         [StringLength(8)]
-        public string IdUsuario { get; set; }
+        public string Id_Usuario { get; set; }
 
         [Required]
         [StringLength(100)]
@@ -34,9 +34,9 @@ namespace ApiConsultorio.Models
         [StringLength(128)]
         public string Contrasena { get; set; }
 
-        public byte IdRol { get; set; }
+        public byte Id_Rol { get; set; }
 
-        public DateTime FechaRegistro { get; set; }
+        public DateTime Fecha_Registro { get; set; }
 
         public bool PedirContraseña { get; set; }
     }
