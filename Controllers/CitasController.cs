@@ -10,97 +10,114 @@ namespace ApiConsultorio.Controllers
     public class CitasController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly LogEventos _log = new LogEventos();
 
         public CitasController(ApplicationDbContext context)
         {
             _context = context;
         }
 
-        // GET: Listado de citas con nombres y especialidad
+        // ============================================
+        // GET: Listado de citas
+        // ============================================
         [HttpGet]
         public async Task<ActionResult> GetCitas()
         {
-            var lista = await _context.Citas
-                .Include(c => c.Paciente)
-                .Include(c => c.Medico)
-                .Include(c => c.EstadoCita)
-                .ThenInclude(e => e.Descripcion)
-                .Select(c => new
-                {
-                    c.ID_Cita,
-                    NombrePaciente = c.Paciente.Nombre + " " + c.Paciente.Apellido,
-                    NombreMedico = c.Medico.Horario_Atencion != null ? c.Medico.Horario_Atencion : "",
-                    Especialidad = c.Medico.ID_Especialidad,
-                    c.Fecha_Cita,
-                    c.Hora_Cita,
-                    Estado = c.EstadoCita.Descripcion
-                })
-                .ToListAsync();
+            try
+            {
+                _log.setMensaje("Intentando obtener listado de citas...");
+                _log.informacion();
 
-            return Ok(lista);
+                var lista = await _context.Citas
+                    .Include(c => c.Paciente)
+                    .Include(c => c.Medico)
+                        .ThenInclude(m => m.Usuario)
+                    .Include(c => c.Medico)
+                        .ThenInclude(m => m.Especialidad)
+                    .Include(c => c.EstadoCita)
+                    .Select(c => new CitaListadoDTO
+                    {
+                        ID_Cita = c.ID_Cita,
+                        NombrePaciente = c.Paciente.Nombre + " " + c.Paciente.Apellido,
+                        NombreMedico = c.Medico.Usuario.Nombre + " " + c.Medico.Usuario.Apellido,
+                        Especialidad = c.Medico.Especialidad.Nombre_Especialidad,
+                        Fecha_Cita = c.Fecha_Cita,
+                        Hora_Cita = c.Hora_Cita,
+                        Estado = c.EstadoCita.Descripcion
+                    })
+                    .ToListAsync();
+
+                return Ok(lista);
+            }
+            catch (Exception ex)
+            {
+                _log.informacion(ex);
+                return StatusCode(500, "Error interno del servidor.");
+            }
         }
 
-        // GET: Detalle de una cita por ID
-        [HttpGet("{id}")]
-        public async Task<ActionResult> GetCita(int id)
-        {
-            var cita = await _context.Citas
-                .Include(c => c.Paciente)
-                .Include(c => c.Medico)
-                .Include(c => c.EstadoCita)
-                .FirstOrDefaultAsync(c => c.ID_Cita == id);
-
-            if (cita == null) return NotFound();
-
-            return Ok(cita);
-        }
-
+        // ============================================
         // POST: Crear cita
+        // ============================================
         [HttpPost]
         public async Task<ActionResult> CrearCita(CrearCitaDTO dto)
         {
-            var cita = new Cita
+            try
             {
-                ID_Paciente = dto.ID_Paciente,
-                ID_Medico = dto.ID_Medico,
-                Fecha_Cita = dto.Fecha_Cita,
-                Hora_Cita = dto.Hora_Cita,
-                ID_Estado_Cita = dto.ID_Estado_Cita
-            };
+                _log.setMensaje("Intentando crear una cita...");
+                _log.informacion();
 
-            _context.Citas.Add(cita);
-            await _context.SaveChangesAsync();
+                var cita = new Cita
+                {
+                    ID_Paciente = dto.ID_Paciente,
+                    ID_Medico = dto.ID_Medico,
+                    Fecha_Cita = dto.Fecha_Cita,
+                    Hora_Cita = dto.Hora_Cita,
+                    ID_Estado_Cita = dto.ID_Estado_Cita
+                };
 
-            return Ok("Cita creada correctamente.");
+                await _context.Citas.AddAsync(cita);
+                await _context.SaveChangesAsync();
+
+                return StatusCode(201, "Cita creada correctamente.");
+            }
+            catch (Exception ex)
+            {
+                _log.informacion(ex);
+                return StatusCode(500, "Error al crear la cita.");
+            }
         }
 
-        // PUT: Actualizar cita
-        [HttpPut("{id}")]
-        public async Task<ActionResult> ActualizarCita(int id, CrearCitaDTO dto)
+        // ============================================
+        // PATCH: Cambiar estado de cita
+        // ============================================
+        [HttpPatch("{id}/estado")]
+        public async Task<ActionResult> CambiarEstado(int id, CambiarEstadoCitaDTO dto)
         {
-            var cita = await _context.Citas.FindAsync(id);
-            if (cita == null) return NotFound();
+            try
+            {
+                _log.setMensaje($"Intentando cambiar estado de la cita {id}...");
+                _log.informacion();
 
-            cita.ID_Paciente = dto.ID_Paciente;
-            cita.ID_Medico = dto.ID_Medico;
-            cita.Fecha_Cita = dto.Fecha_Cita;
-            cita.Hora_Cita = dto.Hora_Cita;
-            cita.ID_Estado_Cita = dto.ID_Estado_Cita;
+                var cita = await _context.Citas.FindAsync(id);
+                if (cita == null)
+                {
+                    _log.setMensaje($"Cita {id} no encontrada.");
+                    _log.informacion();
+                    return NotFound("La cita no existe.");
+                }
 
-            await _context.SaveChangesAsync();
-            return Ok("Cita actualizada correctamente.");
-        }
+                cita.ID_Estado_Cita = dto.ID_Estado_Cita;
 
-        // DELETE: Eliminar cita
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> EliminarCita(int id)
-        {
-            var cita = await _context.Citas.FindAsync(id);
-            if (cita == null) return NotFound();
+                await _context.SaveChangesAsync();
 
-            _context.Citas.Remove(cita);
-            await _context.SaveChangesAsync();
-            return Ok("Cita eliminada correctamente.");
+                return Ok("Estado de la cita actualizado correctamente.");
+            }
+            catch (Exception ex)
+            {
+                _log.informacion(ex);
+                return StatusCode(500, "Error al cambiar el estado de la cita.");
+            }
         }
     }
 }

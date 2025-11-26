@@ -12,6 +12,7 @@ namespace ApiConsultorio.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly LogEventos log = new LogEventos();
 
         public UsuariosController(ApplicationDbContext context)
         {
@@ -24,6 +25,9 @@ namespace ApiConsultorio.Controllers
         [HttpGet]
         public async Task<ActionResult> GetUsuarios()
         {
+            log.setMensaje("Solicitando lista de usuarios...");
+            log.informacion();
+
             var usuarios = await _context.Usuarios
                 .Select(u => new MostrarUsuarioDTO
                 {
@@ -36,7 +40,10 @@ namespace ApiConsultorio.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(usuarios);
+            log.setMensaje($"Total de usuarios encontrados: {usuarios.Count}");
+            log.informacion();
+
+            return StatusCode(StatusCodes.Status200OK, usuarios);
         }
 
         // ============================================================
@@ -45,52 +52,67 @@ namespace ApiConsultorio.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult> GetUsuario(string id)
         {
+            log.setMensaje($"Buscando usuario con ID: {id}");
+            log.informacion();
+
             var usuario = await _context.Usuarios
                 .Where(x => x.Id_Usuario == id)
-                .Select(u => new Usuario
-                {
-                    Id_Usuario = u.Id_Usuario,
-                    Nombre = u.Nombre,
-                    Apellido = u.Apellido,
-                    Email = u.Email,
-                    Cedula = u.Cedula,
-                    Telefono = u.Telefono,
-                    Id_Rol = u.Id_Rol
-                })
                 .FirstOrDefaultAsync();
 
             if (usuario == null)
-                return NotFound();
+            {
+                log.setMensaje($"Usuario con ID {id} no encontrado");
+                log.informacion();
+                return StatusCode(StatusCodes.Status404NotFound, "Usuario no encontrado");
+            }
 
-            return Ok(usuario);
+            return StatusCode(StatusCodes.Status200OK, usuario);
         }
 
         // ============================================================
-        // POST: Crear usuario (rol general, NO médico)
+        // POST: Crear usuario
         // ============================================================
         [HttpPost]
         public async Task<ActionResult> CrearUsuario(CrearUsuarioDTO dto)
         {
+            log.setMensaje($"Intentando crear usuario {dto.Email}");
+            log.informacion();
+
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var usuario = new Usuario
             {
-                Id_Usuario = String.Empty,
-                Nombre = dto.Nombre,
-                Apellido = dto.Apellido,
-                Email = dto.Email,
-                Cedula = dto.Cedula,
-                Telefono = dto.Telefono,
-                Contrasena = HashSHA256(dto.Contrasena),
-                Id_Rol = dto.IdRol,
-                Fecha_Registro = DateTime.Now
-            };
+                log.setMensaje("Modelo inválido al crear usuario");
+                log.informacion();
+                return StatusCode(StatusCodes.Status400BadRequest, ModelState);
+            }
 
-            _context.Usuarios.Add(usuario);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var usuario = new Usuario
+                {
+                    Id_Usuario = string.Empty,
+                    Nombre = dto.Nombre,
+                    Apellido = dto.Apellido,
+                    Email = dto.Email,
+                    Cedula = dto.Cedula,
+                    Telefono = dto.Telefono,
+                    Contrasena = HashSHA256(dto.Contrasena),
+                    Id_Rol = dto.IdRol,
+                    Fecha_Registro = DateTime.Now
+                };
 
-            return Ok("Usuario creado correctamente.");
+                _context.Usuarios.Add(usuario);
+                await _context.SaveChangesAsync();
+
+                log.setMensaje($"Usuario {dto.Email} creado correctamente");
+                log.informacion();
+
+                return StatusCode(StatusCodes.Status201Created, "Usuario creado correctamente");
+            }
+            catch (Exception ex)
+            {
+                log.informacion(ex);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error al crear usuario");
+            }
         }
 
         // ============================================================
@@ -99,16 +121,29 @@ namespace ApiConsultorio.Controllers
         [HttpPost("login")]
         public async Task<ActionResult> Login(LoginDTO dto)
         {
-            var usuario = await _context.Usuarios
-                .FirstOrDefaultAsync(x => x.Email == dto.Email);
+            log.setMensaje($"Intento de login para: {dto.Email}");
+            log.informacion();
+
+            var usuario = await _context.Usuarios.FirstOrDefaultAsync(x => x.Email == dto.Email);
 
             if (usuario == null)
-                return Unauthorized("Usuario no encontrado.");
+            {
+                log.setMensaje($"Login fallido, usuario no encontrado: {dto.Email}");
+                log.informacion();
+                return StatusCode(StatusCodes.Status401Unauthorized, "Contraseña o correo incorrectos");
+            }
 
             if (usuario.Contrasena != HashSHA256(dto.Contrasena))
-                return Unauthorized("Contraseña incorrecta.");
+            {
+                log.setMensaje($"Login fallido, contraseña incorrecta: {dto.Email}");
+                log.informacion();
+                return StatusCode(StatusCodes.Status401Unauthorized, "Contraseña o correo incorrectos");
+            }
 
-            return Ok(new
+            log.setMensaje($"Login exitoso: {dto.Email}");
+            log.informacion();
+
+            return StatusCode(StatusCodes.Status200OK, new
             {
                 usuario.Id_Usuario,
                 usuario.Nombre,
@@ -118,15 +153,21 @@ namespace ApiConsultorio.Controllers
         }
 
         // ============================================================
-        // PUT: Actualizar datos básicos
+        // PUT: Actualizar usuario
         // ============================================================
         [HttpPut("{id}")]
         public async Task<ActionResult> ActualizarUsuario(string id, ActualizarUsuarioDTO dto)
         {
-            var usuario = await _context.Usuarios.FindAsync(id);
+            log.setMensaje($"Actualizando usuario con ID: {id}");
+            log.informacion();
 
+            var usuario = await _context.Usuarios.FindAsync(id);
             if (usuario == null)
-                return NotFound();
+            {
+                log.setMensaje($"No se encontró usuario con ID {id}");
+                log.informacion();
+                return StatusCode(StatusCodes.Status404NotFound, "Usuario no encontrado");
+            }
 
             usuario.Nombre = dto.Nombre;
             usuario.Apellido = dto.Apellido;
@@ -135,7 +176,10 @@ namespace ApiConsultorio.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok("Usuario actualizado correctamente.");
+            log.setMensaje($"Usuario actualizado correctamente: {id}");
+            log.informacion();
+
+            return StatusCode(StatusCodes.Status200OK, "Usuario actualizado correctamente");
         }
 
         // ============================================================
@@ -144,16 +188,24 @@ namespace ApiConsultorio.Controllers
         [HttpPut("cambiar-password/{id}")]
         public async Task<ActionResult> CambiarPassword(string id, [FromBody] string nuevaPassword)
         {
-            var usuario = await _context.Usuarios.FindAsync(id);
+            log.setMensaje($"Cambio de contraseña solicitado para usuario {id}");
+            log.informacion();
 
+            var usuario = await _context.Usuarios.FindAsync(id);
             if (usuario == null)
-                return NotFound();
+            {
+                log.setMensaje($"Usuario no encontrado para cambio de contraseña: {id}");
+                log.informacion();
+                return StatusCode(StatusCodes.Status404NotFound, "Usuario no encontrado");
+            }
 
             usuario.Contrasena = HashSHA256(nuevaPassword);
-
             await _context.SaveChangesAsync();
 
-            return Ok("Contraseña actualizada.");
+            log.setMensaje($"Contraseña actualizada para usuario {id}");
+            log.informacion();
+
+            return StatusCode(StatusCodes.Status200OK, "Contraseña actualizada");
         }
 
         // ============================================================
@@ -162,17 +214,27 @@ namespace ApiConsultorio.Controllers
         [HttpPut("estado/{id}")]
         public async Task<ActionResult> CambiarEstado(string id, [FromBody] bool bloquear)
         {
+            log.setMensaje($"Cambiando estado del usuario {id}. Bloquear = {bloquear}");
+            log.informacion();
+
             var actividad = await _context.ActividadUsuarios.FindAsync(id);
 
             if (actividad == null)
-                return NotFound();
+            {
+                log.setMensaje($"Actividadusuario no encontrada para ID {id}");
+                log.informacion();
+                return StatusCode(StatusCodes.Status404NotFound, "Actividad no encontrada");
+            }
 
             actividad.Bloqueado = bloquear;
             actividad.Activo = !bloquear;
 
             await _context.SaveChangesAsync();
 
-            return Ok(bloquear ? "Usuario bloqueado." : "Usuario activado.");
+            log.setMensaje($"Estado del usuario {id} cambiado a {(bloquear ? "BLOQUEADO" : "ACTIVO")}");
+            log.informacion();
+
+            return StatusCode(StatusCodes.Status200OK, bloquear ? "Usuario bloqueado" : "Usuario activado");
         }
 
         // ============================================================
@@ -181,15 +243,24 @@ namespace ApiConsultorio.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> EliminarUsuario(string id)
         {
-            var usuario = await _context.Usuarios.FindAsync(id);
+            log.setMensaje($"Intentando eliminar usuario {id}");
+            log.informacion();
 
+            var usuario = await _context.Usuarios.FindAsync(id);
             if (usuario == null)
-                return NotFound();
+            {
+                log.setMensaje($"No se encontró el usuario con ID {id}");
+                log.informacion();
+                return StatusCode(StatusCodes.Status404NotFound, "Usuario no encontrado");
+            }
 
             _context.Usuarios.Remove(usuario);
             await _context.SaveChangesAsync();
 
-            return Ok("Usuario eliminado.");
+            log.setMensaje($"Usuario {id} eliminado");
+            log.informacion();
+
+            return StatusCode(StatusCodes.Status200OK, "Usuario eliminado");
         }
 
         // ============================================================

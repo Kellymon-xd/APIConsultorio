@@ -8,16 +8,16 @@ namespace ApiConsultorio.Models
     {
         [Key]
         [StringLength(8)]
-        public string IdUsuario { get; set; }
+        public string Id_Usuario { get; set; }
 
         public bool Activo { get; set; }
 
         public bool Bloqueado { get; set; }
 
-        public int IntentosFallidos { get; set; }
+        public int Intentos_Fallidos { get; set; }
 
-        public DateTime? FechaBloqueo { get; set; }
+        public DateTime? Fecha_Bloqueo { get; set; }
 
-        public DateTime? UltimaActividad { get; set; }
+        public DateTime? Ultima_Actividad { get; set; }
     }
 }
