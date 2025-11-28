@@ -28,17 +28,23 @@ namespace ApiConsultorio.Controllers
             log.setMensaje("Solicitando lista de usuarios...");
             log.informacion();
 
-            var usuarios = await _context.Usuarios
-                .Select(u => new MostrarUsuarioDTO
+            var usuarios = await (
+                from u in _context.Usuarios
+                join a in _context.ActividadUsuarios
+                    on u.Id_Usuario equals a.Id_Usuario
+
+                select new MostrarUsuarioDTO
                 {
+                    Id_Usuario = u.Id_Usuario,
+                    Cedula=u.Cedula,
                     Nombre = u.Nombre,
                     Apellido = u.Apellido,
                     Email = u.Email,
-                    Cedula = u.Cedula,
-                    Telefono = u.Telefono,
-                    IdRol = u.Id_Rol
-                })
-                .ToListAsync();
+                    Id_Rol = u.Id_Rol,
+                    Activo = a.Activo,
+                    Bloqueado = a.Bloqueado
+                }
+            ).ToListAsync();
 
             log.setMensaje($"Total de usuarios encontrados: {usuarios.Count}");
             log.informacion();
@@ -46,28 +52,90 @@ namespace ApiConsultorio.Controllers
             return StatusCode(StatusCodes.Status200OK, usuarios);
         }
 
+
         // ============================================================
         // GET: Obtener usuario por ID
         // ============================================================
         [HttpGet("{id}")]
         public async Task<ActionResult> GetUsuario(string id)
         {
-            log.setMensaje($"Buscando usuario con ID: {id}");
-            log.informacion();
-
-            var usuario = await _context.Usuarios
-                .Where(x => x.Id_Usuario == id)
-                .FirstOrDefaultAsync();
-
-            if (usuario == null)
+            try
             {
-                log.setMensaje($"Usuario con ID {id} no encontrado");
+                log.setMensaje($"Buscando usuario con ID: {id}");
                 log.informacion();
-                return StatusCode(StatusCodes.Status404NotFound, "Usuario no encontrado");
-            }
 
-            return StatusCode(StatusCodes.Status200OK, usuario);
+                var usuario = await _context.Usuarios
+                    .Where(u => u.Id_Usuario == id)
+                    .Select(u => new
+                    {
+                        u.Id_Usuario,
+                        u.Nombre,
+                        u.Apellido,
+                        u.Email,
+                        u.Cedula,
+                        u.Id_Rol,
+                        u.Telefono,
+                        u.Fecha_Registro
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (usuario == null)
+                {
+                    log.setMensaje($"Usuario con ID {id} no encontrado");
+                    log.informacion();
+                    return StatusCode(StatusCodes.Status404NotFound, "Usuario no encontrado");
+                }
+
+                var result = new Dictionary<string, object>
+                {
+                    ["id_Usuario"] = usuario.Id_Usuario,
+                    ["nombre"] = usuario.Nombre,
+                    ["apellido"] = usuario.Apellido,
+                    ["email"] = usuario.Email,
+                    ["cedula"] = usuario.Cedula,
+                    ["id_Rol"] = usuario.Id_Rol,
+                    ["telefono"] = usuario.Telefono,
+                    ["fecha_Registro"] = usuario.Fecha_Registro
+                };
+
+                // Si es médico, agregar los campos de médico
+                if (usuario.Id_Rol == 2)
+                {
+                    var medico = await _context.Medicos
+                        .Where(m => m.Id_Usuario == id)
+                        .Select(m => new
+                        {
+                            m.ID_Medico,
+                            m.ID_Especialidad,
+                            m.ID_Contrato,
+                            m.Horario_Atencion,
+                            m.Telefono_Consulta
+                        })
+                        .FirstOrDefaultAsync();
+
+                    if (medico != null)
+                    {
+                        result["ID_Medico"] = medico.ID_Medico;
+                        result["ID_Especialidad"] = medico.ID_Especialidad;
+                        result["ID_Contrato"] = medico.ID_Contrato;
+                        result["Horario_Atencion"] = medico.Horario_Atencion;
+                        result["Telefono_Consulta"] = medico.Telefono_Consulta;
+                    }
+                }
+
+                log.setMensaje($"Devolviendo datos del usuario {id}");
+                log.informacion();
+
+                return StatusCode(StatusCodes.Status200OK, result);
+            }
+            catch (Exception ex)
+            {
+                log.informacion(ex);
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error interno del servidor.");
+            }
         }
+
+
 
         // ============================================================
         // POST: Crear usuario
@@ -135,7 +203,7 @@ namespace ApiConsultorio.Controllers
 
             if (usuario.Contrasena != HashSHA256(dto.Contrasena))
             {
-                log.setMensaje($"Login fallido, contraseña incorrecta: {dto.Email}");
+                log.setMensaje($"Login fallido, contraseña incorrecta: {HashSHA256(dto.Contrasena)}");
                 log.informacion();
                 return StatusCode(StatusCodes.Status401Unauthorized, "Contraseña o correo incorrectos");
             }
@@ -236,6 +304,36 @@ namespace ApiConsultorio.Controllers
 
             return StatusCode(StatusCodes.Status200OK, bloquear ? "Usuario bloqueado" : "Usuario activado");
         }
+
+        // ============================================================
+        // PUT: Activar / Inactivar usuario
+        // ============================================================
+        [HttpPut("activo/{id}")]
+        public async Task<ActionResult> CambiarActivo(string id, [FromBody] bool activo)
+        {
+            log.setMensaje($"Cambiando estado ACTIVO del usuario {id}. Activo = {activo}");
+            log.informacion();
+
+            var actividad = await _context.ActividadUsuarios.FindAsync(id);
+
+            if (actividad == null)
+            {
+                log.setMensaje($"ActividadUsuario no encontrada para ID {id}");
+                log.informacion();
+                return StatusCode(StatusCodes.Status404NotFound, "Actividad no encontrada");
+            }
+
+            actividad.Activo = activo;
+
+            await _context.SaveChangesAsync();
+
+            log.setMensaje($"Usuario {id} ahora está {(activo ? "ACTIVO" : "INACTIVO")}");
+            log.informacion();
+
+            return StatusCode(StatusCodes.Status200OK,
+                activo ? "Usuario activado" : "Usuario inactivado");
+        }
+
 
         // ============================================================
         // DELETE

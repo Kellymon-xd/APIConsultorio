@@ -32,5 +32,25 @@ namespace ApiConsultorio.Controllers
 
             return Ok(tipos);
         }
+
+        // GET: api/tipocontrato/{id}
+        [HttpGet("{id}")]
+        public async Task<ActionResult<TipoContratoComboDTO>> GetTipoContrato(int id)
+        {
+            var tipo = await _context.TipoContrato
+                .Where(t => t.ID_Contrato == id)
+                .Select(t => new TipoContratoComboDTO
+                {
+                    ID_Contrato = t.ID_Contrato,
+                    Descripcion = t.Descripcion
+                })
+                .FirstOrDefaultAsync();
+
+            if (tipo == null)
+                return NotFound(new { mensaje = "Tipo de contrato no encontrado" });
+
+            return Ok(tipo);
+        }
+
     }
 }

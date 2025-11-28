@@ -29,6 +29,7 @@ namespace ApiConsultorio.Controllers
             log.informacion();
 
             var lista = await _context.Medicos
+                .Where(m => m.Activo == true)
                 .Include(m => m.Usuario)
                 .Include(m => m.Especialidad)
                 .Include(m => m.Contrato)
@@ -192,59 +193,6 @@ namespace ApiConsultorio.Controllers
             return StatusCode(StatusCodes.Status200OK, "Médico eliminado");
         }
 
-        // ============================================================
-        // GET: Detalle médico
-        // ============================================================
-        [HttpGet("detalle/{id}")]
-        public async Task<ActionResult> GetDetalleMedico(int id)
-        {
-            log.setMensaje($"Consultando detalle del médico {id}");
-            log.informacion();
-
-            var medico = await _context.Medicos
-                .Include(m => m.Usuario)
-                .Include(m => m.Especialidad)
-                .Include(m => m.Contrato)
-                .Where(m => m.ID_Medico == id)
-                .Select(m => new
-                {
-                    m.ID_Medico,
-                    Usuario = new
-                    {
-                        m.Usuario.Id_Usuario,
-                        m.Usuario.Nombre,
-                        m.Usuario.Apellido,
-                        NombreCompleto = m.Usuario.Nombre + " " + m.Usuario.Apellido,
-                        m.Usuario.Email,
-                        m.Usuario.Cedula,
-                        m.Usuario.Telefono
-                    },
-                    Especialidad = new
-                    {
-                        m.Especialidad.ID_Especialidad,
-                        m.Especialidad.Nombre_Especialidad,
-                        m.Especialidad.Descripcion
-                    },
-                    Contrato = new
-                    {
-                        m.Contrato.ID_Contrato,
-                        m.Contrato.Descripcion
-                    },
-                    m.Horario_Atencion,
-                    m.Telefono_Consulta,
-                    m.Activo
-                })
-                .FirstOrDefaultAsync();
-
-            if (medico == null)
-            {
-                log.setMensaje($"No se encontró detalle para médico {id}");
-                log.informacion();
-                return StatusCode(StatusCodes.Status404NotFound, "Médico no encontrado");
-            }
-
-            return StatusCode(StatusCodes.Status200OK, medico);
-        }
 
         // ============================================================
         // HASH 
