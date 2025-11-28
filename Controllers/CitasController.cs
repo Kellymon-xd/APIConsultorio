@@ -41,9 +41,9 @@ namespace ApiConsultorio.Controllers
                         NombrePaciente = c.Paciente.Nombre + " " + c.Paciente.Apellido,
                         NombreMedico = c.Medico.Usuario.Nombre + " " + c.Medico.Usuario.Apellido,
                         Especialidad = c.Medico.Especialidad.Nombre_Especialidad,
-                        Fecha_Cita = c.Fecha_Cita,
-                        Hora_Cita = c.Hora_Cita,
-                        Estado = c.EstadoCita.Descripcion
+                        Fecha_Cita = c.Fecha_Cita.ToString("d-M-yyyy"),
+                        Hora_Cita = c.Hora_Cita.ToString(@"hh\:mm"),
+                        ID_Estado_Cita = c.ID_Estado_Cita
                     })
                     .ToListAsync();
 
