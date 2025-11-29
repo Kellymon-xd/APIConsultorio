@@ -211,14 +211,30 @@ namespace ApiConsultorio.Controllers
             log.setMensaje($"Login exitoso: {dto.Email}");
             log.informacion();
 
+            // ======================================
+            // OBTENER ID MÉDICO (solo si es médico)
+            // ======================================
+            int? idMedico = null;
+
+            if (usuario.Id_Rol == 2)
+            {
+                var medico = await _context.Medicos
+                    .FirstOrDefaultAsync(m => m.Id_Usuario == usuario.Id_Usuario);
+
+                if (medico != null)
+                    idMedico = medico.ID_Medico;
+            }
+
             return StatusCode(StatusCodes.Status200OK, new
             {
                 usuario.Id_Usuario,
                 usuario.Nombre,
                 usuario.Apellido,
-                usuario.Id_Rol
+                usuario.Id_Rol,
+                Id_Medico = idMedico
             });
         }
+
 
         // ============================================================
         // PUT: Actualizar usuario

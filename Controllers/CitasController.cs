@@ -73,7 +73,7 @@ namespace ApiConsultorio.Controllers
                     ID_Medico = dto.ID_Medico,
                     Fecha_Cita = dto.Fecha_Cita,
                     Hora_Cita = dto.Hora_Cita,
-                    ID_Estado_Cita = dto.ID_Estado_Cita
+                    ID_Estado_Cita = 1
                 };
 
                 await _context.Citas.AddAsync(cita);
@@ -119,5 +119,76 @@ namespace ApiConsultorio.Controllers
                 return StatusCode(500, "Error al cambiar el estado de la cita.");
             }
         }
+
+        [HttpGet("para-atencionMedica")]
+        public async Task<ActionResult> GetCitasParaAtencion()
+        {
+            try
+            {
+                var citas = await _context.Citas
+                    .Include(c => c.Paciente)
+                    .Include(c => c.Medico)
+                        .ThenInclude(m => m.Usuario)
+                    .Where(c => c.ID_Estado_Cita == 2) // atendida
+                    .Where(c => !_context.AtencionMedica
+                                 .Any(a => a.ID_Cita == c.ID_Cita)) // sin atención médica
+                    .Select(c => new
+                    {
+                        c.ID_Cita,
+                        ID_Paciente = c.Paciente.ID_Paciente,
+                        NombrePaciente = c.Paciente.Nombre + " " + c.Paciente.Apellido,
+                        CedulaPaciente = c.Paciente.Cedula,
+                        NombreMedico = c.Medico.Usuario.Nombre + " " + c.Medico.Usuario.Apellido,
+                        c.Fecha_Cita,
+                        c.Hora_Cita
+                    })
+                    .ToListAsync();
+
+                return Ok(citas);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Error interno del servidor.");
+            }
+        }
+
+        // ============================================
+        // GET: Citas por ID del médico
+        // ============================================
+        [HttpGet("medico/{idMedico}")]
+        public async Task<ActionResult> GetCitasPorMedico(int idMedico)
+        {
+            try
+            {
+                _log.setMensaje($"Obteniendo citas del médico {idMedico}...");
+                _log.informacion();
+
+                var citas = await _context.Citas
+                    .Where(c => c.ID_Medico == idMedico)
+                    .Include(c => c.Paciente)
+                    .Include(c => c.Medico)
+                        .ThenInclude(m => m.Usuario)
+                    .Include(c => c.Medico)
+                        .ThenInclude(m => m.Especialidad)
+                    .Include(c => c.EstadoCita)
+                    .Select(c => new CitaListadoDTO
+                    {
+                        ID_Cita = c.ID_Cita,
+                        NombrePaciente = c.Paciente.Nombre + " " + c.Paciente.Apellido,
+                        Fecha_Cita = c.Fecha_Cita.ToString("d-M-yyyy"),
+                        Hora_Cita = c.Hora_Cita.ToString(@"hh\:mm"),
+                        ID_Estado_Cita = c.ID_Estado_Cita
+                    })
+                    .ToListAsync();
+
+                return Ok(citas);
+            }
+            catch (Exception ex)
+            {
+                _log.informacion(ex);
+                return StatusCode(500, "Error interno del servidor.");
+            }
+        }
+
     }
 }

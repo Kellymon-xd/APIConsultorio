@@ -203,5 +203,31 @@ namespace ApiConsultorio.Controllers
             var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
             return BitConverter.ToString(bytes).Replace("-", "").ToLower();
         }
+
+        // ============================================================
+        // GET: Listar médicos
+        // ============================================================
+        [HttpGet("combo")]
+        public async Task<ActionResult<IEnumerable<MedicoComboDTO>>> GetCombo()
+        {
+            log.setMensaje("Solicitando lista para combo de médicos...");
+            log.informacion();
+
+            var medicos = await _context.Medicos
+                .Where(m => m.Activo == true)
+                .Include(m => m.Usuario)
+                .Select(m => new MedicoComboDTO
+                {
+                    Id_Medico = m.ID_Medico,
+                    NombreCompleto = m.Usuario.Nombre + " " + m.Usuario.Apellido,
+                    Cedula = m.Usuario.Cedula
+                })
+                .ToListAsync();
+
+            log.setMensaje($"Total de médicos encontrados (combo): {medicos.Count}");
+            log.informacion();
+
+            return Ok(medicos);
+        }
     }
 }

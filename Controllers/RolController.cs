@@ -40,11 +40,11 @@ namespace ApiConsultorio.Controllers
             if (r == null)
                 return NotFound();
 
-            return new Rol
+            return Ok(new Rol
             {
                 Id_Rol = r.Id_Rol,
                 Descripcion_Rol = r.Descripcion_Rol
-            };
+            });
         }
     }
 }

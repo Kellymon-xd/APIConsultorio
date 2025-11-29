@@ -99,5 +99,21 @@ namespace APIConsultorio.Controllers
 
             return Ok("Paciente desactivado");
         }
+
+        // GET api/pacientes/combo
+        [HttpGet("combo")]
+        public async Task<ActionResult<IEnumerable<PacienteResponseDto>>> GetCombo()
+        {
+            var pacientes = await _context.Pacientes
+                .Select(p => new PacienteComboDTO
+                {
+                    Id_Paciente = p.ID_Paciente,
+                    NombreCompleto = p.Nombre + " " + p.Apellido,
+                    Cedula = p.Cedula
+                })
+                .ToListAsync();
+
+            return Ok(pacientes);
+        }
     }
 }

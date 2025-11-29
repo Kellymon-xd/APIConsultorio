@@ -24,5 +24,7 @@ namespace ApiConsultorio.Models
 
         [ForeignKey("ID_Estado_Cita")]
         public virtual EstadoCita EstadoCita { get; set; }
+
+        public AtencionMedica AtencionMedica { get; set; }
     }
 }
