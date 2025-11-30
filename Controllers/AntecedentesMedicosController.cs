@@ -37,17 +37,30 @@ namespace ApiConsultorio.Controllers
             return Ok(lista);
         }
 
-        // GET: Detalle por ID
-        [HttpGet("{id}")]
-        public async Task<ActionResult> GetAntecedente(int id)
+        // GET: Detalle por ID del Paciente
+        [HttpGet("paciente/{idPaciente}")]
+        public async Task<ActionResult> GetAntecedentesPorPaciente(int idPaciente)
         {
-            var antecedente = await _context.AntecedentesMedicos
+            var antecedentes = await _context.AntecedentesMedicos
+                .Where(a => a.ID_Paciente == idPaciente)
                 .Include(a => a.Paciente)
-                .FirstOrDefaultAsync(a => a.ID_Antecedente == id);
+                .Select(a => new AntecedentesDetalleDTO
+                {
+                    ID_Antecedente = a.ID_Antecedente,
+                    ID_Paciente = a.ID_Paciente,
+                    Alergias = a.Alergias,
+                    Enfermedades_Cronicas = a.Enfermedades_Cronicas,
+                    Observaciones_Generales = a.Observaciones_Generales,
+                    Fecha_Registro = a.Fecha_Registro.ToString("dd/MM/yyyy HH:mm")
+                })
+                .ToListAsync();
 
-            if (antecedente == null) return NotFound();
-            return Ok(antecedente);
+            if (!antecedentes.Any()) return NotFound();
+
+            return Ok(antecedentes);
         }
+
+
 
         // POST: Crear antecedentes
         [HttpPost]
