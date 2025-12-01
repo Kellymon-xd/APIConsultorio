@@ -55,7 +55,7 @@ namespace ApiConsultorio.Controllers
                 .FirstOrDefaultAsync();
 
             if (antecedente == null)
-                return NotFound();
+                return NoContent();
 
             return Ok(antecedente);
         }

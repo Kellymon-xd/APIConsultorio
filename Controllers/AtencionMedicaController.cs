@@ -59,7 +59,7 @@ namespace ApiConsultorio.Controllers
                 .ToListAsync();
 
             if (atenciones == null || atenciones.Count == 0)
-                return NotFound("El paciente no tiene atenciones médicas registradas.");
+                return NoContent();
 
             return Ok(atenciones);
         }
