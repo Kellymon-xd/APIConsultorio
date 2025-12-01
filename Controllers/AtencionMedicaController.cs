@@ -41,20 +41,30 @@ namespace ApiConsultorio.Controllers
             return Ok(lista);
         }
 
-        // GET: Detalle de una atención
-        [HttpGet("{id}")]
-        public async Task<ActionResult> GetAtencion(int id)
+        // GET: api/AtencionMedica/paciente/{idPaciente}
+        [HttpGet("paciente/{idPaciente}")]
+        public async Task<ActionResult> GetAtencionesPorPaciente(int idPaciente)
         {
-            var atencion = await _context.AtencionMedica
-                .Include(a => a.Cita)
-                .ThenInclude(c => c.Paciente)
-                .Include(a => a.Cita)
-                .ThenInclude(c => c.Medico)
-                .FirstOrDefaultAsync(a => a.ID_Atencion == id);
+            var atenciones = await _context.AtencionMedica
+                .Where(a => a.Cita.ID_Paciente == idPaciente)
+                .OrderByDescending(a => a.Fecha_Atencion)
+                .Select(a => new AtencionMedicaDTO
+                {
+                    Id_Atencion = a.ID_Atencion,
+                    Fecha = a.Fecha_Atencion,
+                    Motivo = a.Motivo_Consulta,
+                    Diagnostico = a.Diagnostico,
+                    Tratamiento = a.Observaciones
+                })
+                .ToListAsync();
 
-            if (atencion == null) return NotFound();
-            return Ok(atencion);
+            if (atenciones == null || atenciones.Count == 0)
+                return NotFound("El paciente no tiene atenciones médicas registradas.");
+
+            return Ok(atenciones);
         }
+
+
 
         // POST: Crear atención
         [HttpPost]

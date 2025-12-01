@@ -37,13 +37,12 @@ namespace ApiConsultorio.Controllers
             return Ok(lista);
         }
 
-        // GET: Detalle por ID del Paciente
+        // GET: Antecedente por ID del Paciente
         [HttpGet("paciente/{idPaciente}")]
-        public async Task<ActionResult> GetAntecedentesPorPaciente(int idPaciente)
+        public async Task<ActionResult> GetAntecedentePorPaciente(int idPaciente)
         {
-            var antecedentes = await _context.AntecedentesMedicos
+            var antecedente = await _context.AntecedentesMedicos
                 .Where(a => a.ID_Paciente == idPaciente)
-                .Include(a => a.Paciente)
                 .Select(a => new AntecedentesDetalleDTO
                 {
                     ID_Antecedente = a.ID_Antecedente,
@@ -53,14 +52,13 @@ namespace ApiConsultorio.Controllers
                     Observaciones_Generales = a.Observaciones_Generales,
                     Fecha_Registro = a.Fecha_Registro.ToString("dd/MM/yyyy HH:mm")
                 })
-                .ToListAsync();
+                .FirstOrDefaultAsync();
 
-            if (!antecedentes.Any()) return NotFound();
+            if (antecedente == null)
+                return NotFound();
 
-            return Ok(antecedentes);
+            return Ok(antecedente);
         }
-
-
 
         // POST: Crear antecedentes
         [HttpPost]
