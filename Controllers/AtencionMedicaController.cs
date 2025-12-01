@@ -76,7 +76,7 @@ namespace ApiConsultorio.Controllers
                 Motivo_Consulta = dto.Motivo_Consulta,
                 Diagnostico = dto.Diagnostico,
                 Observaciones = dto.Observaciones,
-                Fecha_Atencion = DateTime.Now
+                Fecha_Atencion = dto.Fecha
             };
 
             _context.AtencionMedica.Add(atencion);
