@@ -27,6 +27,8 @@ namespace APIConsultorio.Controllers
                 Cedula = dto.Cedula,
                 Telefono = dto.Telefono,
                 Email = dto.Email,
+                Sexo=dto.Sexo,
+                Fecha_Nacimiento=dto.Fecha_Nacimiento,
                 Direccion = dto.Direccion,
                 ContactoEmergencia = dto.ContactoEmergencia,
                 Activo = true
