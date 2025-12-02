@@ -174,7 +174,16 @@ namespace ApiConsultorio.Controllers
                 log.setMensaje($"Usuario {dto.Email} creado correctamente");
                 log.informacion();
 
-                return StatusCode(StatusCodes.Status201Created, "Usuario creado correctamente");
+                var usuarioCreado = await _context.Usuarios
+                    .Where(u => u.Email == dto.Email)
+                    .Select(u => new { u.Id_Usuario })
+                    .FirstOrDefaultAsync();
+
+                return StatusCode(StatusCodes.Status201Created, new
+                {
+                    message = "Usuario creado correctamente",
+                    idUsuario = usuarioCreado?.Id_Usuario
+                });
             }
             catch (Exception ex)
             {
@@ -359,20 +368,77 @@ namespace ApiConsultorio.Controllers
             log.informacion();
 
             var usuario = await _context.Usuarios.FindAsync(id);
+
             if (usuario == null)
             {
-                log.setMensaje($"No se encontró el usuario con ID {id}");
+                log.setMensaje($"No existe el usuario con ID {id}");
                 log.informacion();
-                return StatusCode(StatusCodes.Status404NotFound, "Usuario no encontrado");
+                return StatusCode(StatusCodes.Status404NotFound, new
+                {
+                    message = "Usuario no encontrado",
+                    code = 404
+                });
             }
 
+            // Si es médico (Id_Rol = 2)
+            if (usuario.Id_Rol == 2)
+            {
+                log.setMensaje($"Usuario {id} es médico. Verificando dependencias...");
+                log.informacion();
+
+                // Obtener el ID_Medico asociado
+                var medico = await _context.Medicos
+                    .FirstOrDefaultAsync(m => m.Id_Usuario == id);
+
+                if (medico == null)
+                {
+                    log.setMensaje($"Error: el usuario {id} tiene rol médico pero no tiene entrada en MEDICOS.");
+                    log.error();
+                    return StatusCode(StatusCodes.Status500InternalServerError, new
+                    {
+                        message = "Inconsistencia en datos: médico sin registro en tabla MEDICOS",
+                        code = 500
+                    });
+                }
+
+                // Verificar si el médico tiene citas
+                bool tieneCitas = await _context.Citas
+                    .AnyAsync(c => c.ID_Medico == medico.ID_Medico);
+
+                if (tieneCitas)
+                {
+                    log.setMensaje($"No se puede eliminar el médico {id}, tiene citas registradas.");
+                    log.informacion();
+
+                    return StatusCode(StatusCodes.Status409Conflict, new
+                    {
+                        message = "No se puede eliminar el médico: tiene citas registradas",
+                        code = 409
+                    });
+                }
+
+                // Si no tiene citas → permitir eliminación total
+                log.setMensaje($"Médico {id} sin citas. Eliminando usuario + actividad + médico...");
+                log.informacion();
+            }
+            else
+            {
+                log.setMensaje($"Usuario {id} NO es médico. Eliminación directa.");
+                log.informacion();
+            }
+
+            // === Eliminación ===
             _context.Usuarios.Remove(usuario);
             await _context.SaveChangesAsync();
 
-            log.setMensaje($"Usuario {id} eliminado");
+            log.setMensaje($"Usuario {id} eliminado correctamente.");
             log.informacion();
 
-            return StatusCode(StatusCodes.Status200OK, "Usuario eliminado");
+            return StatusCode(StatusCodes.Status200OK, new
+            {
+                message = "Usuario eliminado correctamente",
+                code = 200
+            });
         }
 
         // ============================================================

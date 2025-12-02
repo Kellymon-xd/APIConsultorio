@@ -18,5 +18,31 @@ namespace ApiConsultorio.Contexts
         public DbSet<EstadoCita> EstadoCita { get; set; }
         public DbSet<AtencionMedica> AtencionMedica { get; set; }
         public DbSet<AntecedentesMedico> AntecedentesMedicos { get; set; }
+
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // ============================================================
+            // RELACIÓN 1:1 Usuario ↔ ActividadUsuario
+            // (ActividadUsuario depende de Usuario)
+            // ============================================================
+            modelBuilder.Entity<Usuario>()
+                .HasOne(u => u.ActividadUsuario)
+                .WithOne(a => a.Usuario)
+                .HasForeignKey<ActividadUsuario>(a => a.Id_Usuario)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ============================================================
+            // RELACIÓN 1:1 Usuario ↔ Medico
+            // (Medico depende de Usuario)
+            // ============================================================
+            modelBuilder.Entity<Usuario>()
+                .HasOne(u => u.Medico)
+                .WithOne(m => m.Usuario)
+                .HasForeignKey<Medico>(m => m.Id_Usuario)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
     }
 }

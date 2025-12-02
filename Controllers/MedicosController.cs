@@ -29,10 +29,12 @@ namespace ApiConsultorio.Controllers
             log.informacion();
 
             var lista = await _context.Medicos
-                .Where(m => m.Activo == true)
                 .Include(m => m.Usuario)
+                    .ThenInclude(u => u.ActividadUsuario)
                 .Include(m => m.Especialidad)
                 .Include(m => m.Contrato)
+                .Where(m => m.Usuario.ActividadUsuario.Activo == true &&
+                            m.Usuario.ActividadUsuario.Bloqueado == false)
                 .Select(m => new
                 {
                     m.ID_Medico,
@@ -43,16 +45,16 @@ namespace ApiConsultorio.Controllers
                     Especialidad = m.Especialidad.Nombre_Especialidad,
                     Contrato = m.Contrato.Descripcion,
                     m.Horario_Atencion,
-                    m.Telefono_Consulta,
-                    m.Activo
+                    m.Telefono_Consulta
                 })
                 .ToListAsync();
 
             log.setMensaje($"Total de médicos encontrados: {lista.Count}");
             log.informacion();
 
-            return StatusCode(StatusCodes.Status200OK, lista);
+            return Ok(lista);
         }
+
 
         // ============================================================
         // GET: Médico por ID
@@ -80,50 +82,51 @@ namespace ApiConsultorio.Controllers
         }
 
         // ============================================================
-        // POST: Crear médico + usuario
+        // POST: Crear médico
         // ============================================================
         [HttpPost]
         public async Task<ActionResult> CrearMedico([FromBody] CrearMedicoDTO dto)
         {
-            log.setMensaje($"Intentando crear médico con correo {dto.Email}");
+            log.setMensaje($"Intentando crear médico para ID_Usuario {dto.Id_Usuario}");
             log.informacion();
 
             try
             {
-                var usuario = new Usuario
+                // Primero verificar que el usuario exista y tenga rol 2
+                var usuario = await _context.Usuarios
+                    .FirstOrDefaultAsync(u => u.Id_Usuario == dto.Id_Usuario);
+
+                if (usuario == null)
                 {
-                    Nombre = dto.Nombre,
-                    Apellido = dto.Apellido,
-                    Email = dto.Email,
-                    Cedula = dto.Cedula,
-                    Telefono = dto.Telefono,
-                    Contrasena = HashSHA256(dto.Contrasena),
-                    Id_Rol = 2
-                };
+                    return StatusCode(StatusCodes.Status404NotFound,
+                        "El usuario especificado no existe.");
+                }
 
-                _context.Usuarios.Add(usuario);
-                await _context.SaveChangesAsync();
+                if (usuario.Id_Rol != 2)
+                {
+                    return StatusCode(StatusCodes.Status400BadRequest,
+                        "El usuario no tiene rol de médico.");
+                }
 
+                // Crear médico
                 var medico = new Medico
                 {
-                    Id_Usuario = usuario.Id_Usuario,
+                    Id_Usuario = dto.Id_Usuario,
                     ID_Especialidad = dto.ID_Especialidad,
                     ID_Contrato = dto.ID_Contrato,
                     Horario_Atencion = dto.Horario_Atencion,
                     Telefono_Consulta = dto.Telefono_Consulta,
-                    Activo = true
                 };
 
                 _context.Medicos.Add(medico);
                 await _context.SaveChangesAsync();
 
-                log.setMensaje($"Médico creado correctamente con ID {medico.ID_Medico}");
+                log.setMensaje($"Médico creado con ID {medico.ID_Medico}");
                 log.informacion();
 
                 return StatusCode(StatusCodes.Status201Created, new
                 {
                     message = "Médico creado correctamente",
-                    usuario.Id_Usuario,
                     medico.ID_Medico
                 });
             }
@@ -131,7 +134,8 @@ namespace ApiConsultorio.Controllers
             {
                 log.setMensaje("Error al crear médico");
                 log.informacion(ex);
-                return StatusCode(StatusCodes.Status500InternalServerError, "Error al crear médico");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Error al crear médico");
             }
         }
 
@@ -214,8 +218,9 @@ namespace ApiConsultorio.Controllers
             log.informacion();
 
             var medicos = await _context.Medicos
-                .Where(m => m.Activo == true)
                 .Include(m => m.Usuario)
+                    .ThenInclude(u => u.ActividadUsuario)
+                .Where(m => m.Usuario.ActividadUsuario.Activo == true)
                 .Select(m => new MedicoComboDTO
                 {
                     Id_Medico = m.ID_Medico,

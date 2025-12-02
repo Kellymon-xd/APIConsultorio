@@ -11,27 +11,22 @@ namespace ApiConsultorio.Models
         [StringLength(8)]
         public string Id_Usuario { get; set; }
 
-        [Required]
-        [StringLength(100)]
+        [Required, StringLength(100)]
         public string Nombre { get; set; }
 
-        [Required]
-        [StringLength(100)]
+        [Required, StringLength(100)]
         public string Apellido { get; set; }
 
-        [Required]
-        [StringLength(255)]
+        [Required, StringLength(255)]
         public string Email { get; set; }
 
-        [Required]
-        [StringLength(30)]
+        [Required, StringLength(30)]
         public string Cedula { get; set; }
 
         [StringLength(30)]
         public string? Telefono { get; set; }
 
-        [Required]
-        [StringLength(128)]
+        [Required, StringLength(128)]
         public string Contrasena { get; set; }
 
         public byte Id_Rol { get; set; }
@@ -39,5 +34,11 @@ namespace ApiConsultorio.Models
         public DateTime Fecha_Registro { get; set; }
 
         public bool PedirContraseña { get; set; }
+
+        // 🔗 Relaciones
+
+        public ActividadUsuario ActividadUsuario { get; set; }
+
+        public Medico Medico { get; set; }
     }
 }

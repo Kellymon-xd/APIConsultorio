@@ -11,7 +11,7 @@ namespace ApiConsultorio.Models
 
         [Required]
         [StringLength(8)]
-        public string Id_Usuario { get; set; }  // FK CHAR(8)
+        public string Id_Usuario { get; set; }
 
         public int ID_Especialidad { get; set; }
 
@@ -22,8 +22,6 @@ namespace ApiConsultorio.Models
 
         [StringLength(30)]
         public string? Telefono_Consulta { get; set; }
-
-        public bool Activo { get; set; }
 
         // ================================
         // PROPIEDADES DE NAVEGACIÓN

@@ -32,5 +32,10 @@ namespace ApiConsultorio
         {
             logger.Error("Excepción ocurrida: ", ex);
         }
+        public void error()
+        {
+
+            logger.Error(mensaje);
+        }
     }
 }
