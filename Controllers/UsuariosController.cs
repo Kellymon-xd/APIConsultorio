@@ -192,28 +192,55 @@ namespace ApiConsultorio.Controllers
             log.setMensaje($"Intento de login para: {dto.Email}");
             log.informacion();
 
-            var usuario = await _context.Usuarios.FirstOrDefaultAsync(x => x.Email == dto.Email);
+            var usuario = await _context.Usuarios
+                .FirstOrDefaultAsync(x => x.Email == dto.Email);
 
             if (usuario == null)
-            {
-                log.setMensaje($"Login fallido, usuario no encontrado: {dto.Email}");
-                log.informacion();
-                return StatusCode(StatusCodes.Status401Unauthorized, "Contraseña o correo incorrectos");
-            }
+                return Unauthorized("Correo o contraseña incorrectos");
 
+            var actividad = await _context.ActividadUsuarios
+                .FirstOrDefaultAsync(a => a.Id_Usuario == usuario.Id_Usuario);
+
+            if (actividad == null)
+                return StatusCode(500, "Error interno: actividad no encontrada");
+
+            // -----------------------------
+            // VALIDAR ESTADO DEL USUARIO
+            // -----------------------------
+            if (!actividad.Activo)
+                return StatusCode(403, "Usuario inactivo. Contacte al administrador.");
+
+            if (actividad.Bloqueado)
+                return StatusCode(423, "Usuario bloqueado temporalmente.");
+
+            // -----------------------------
+            // VALIDAR CONTRASEÑA
+            // -----------------------------
             if (usuario.Contrasena != HashSHA256(dto.Contrasena))
             {
-                log.setMensaje($"Login fallido, contraseña incorrecta: {HashSHA256(dto.Contrasena)}");
-                log.informacion();
-                return StatusCode(StatusCodes.Status401Unauthorized, "Contraseña o correo incorrectos");
+                actividad.Intentos_Fallidos++;
+
+                if (actividad.Intentos_Fallidos >= 3)
+                {
+                    actividad.Bloqueado = true;
+                    actividad.Fecha_Bloqueo = DateTime.Now;
+                    await _context.SaveChangesAsync();
+                    return StatusCode(423, "Usuario bloqueado por intentos fallidos.");
+                }
+
+                await _context.SaveChangesAsync();
+                return Unauthorized("Correo o contraseña incorrectos");
             }
 
-            log.setMensaje($"Login exitoso: {dto.Email}");
-            log.informacion();
+            // -----------------------------
+            // LOGIN EXITOSO
+            // -----------------------------
+            actividad.Intentos_Fallidos = 0;
+            actividad.Bloqueado = false;
+            actividad.Ultima_Actividad = DateTime.Now;
 
-            // ======================================
-            // OBTENER ID MÉDICO (solo si es médico)
-            // ======================================
+            await _context.SaveChangesAsync();
+
             int? idMedico = null;
 
             if (usuario.Id_Rol == 2)
@@ -225,7 +252,7 @@ namespace ApiConsultorio.Controllers
                     idMedico = medico.ID_Medico;
             }
 
-            return StatusCode(StatusCodes.Status200OK, new
+            return Ok(new
             {
                 usuario.Id_Usuario,
                 usuario.Nombre,
@@ -234,7 +261,6 @@ namespace ApiConsultorio.Controllers
                 Id_Medico = idMedico
             });
         }
-
 
         // ============================================================
         // PUT: Actualizar usuario
@@ -293,63 +319,35 @@ namespace ApiConsultorio.Controllers
         }
 
         // ============================================================
-        // PUT: Bloquear / Desbloquear usuario
+        // PATCH: Bloquear / Desbloquear usuario
         // ============================================================
-        [HttpPut("estado/{id}")]
-        public async Task<ActionResult> CambiarEstado(string id, [FromBody] bool bloquear)
+        [HttpPatch("{id}/bloqueado")]
+        public async Task<ActionResult> CambiarBloqueado(string id, [FromBody] bool bloquear)
         {
-            log.setMensaje($"Cambiando estado del usuario {id}. Bloquear = {bloquear}");
-            log.informacion();
-
             var actividad = await _context.ActividadUsuarios.FindAsync(id);
-
-            if (actividad == null)
-            {
-                log.setMensaje($"Actividadusuario no encontrada para ID {id}");
-                log.informacion();
-                return StatusCode(StatusCodes.Status404NotFound, "Actividad no encontrada");
-            }
+            if (actividad == null) return NotFound("Actividad no encontrada");
 
             actividad.Bloqueado = bloquear;
-            actividad.Activo = !bloquear;
-
             await _context.SaveChangesAsync();
 
-            log.setMensaje($"Estado del usuario {id} cambiado a {(bloquear ? "BLOQUEADO" : "ACTIVO")}");
-            log.informacion();
-
-            return StatusCode(StatusCodes.Status200OK, bloquear ? "Usuario bloqueado" : "Usuario activado");
+            return Ok(bloquear ? "Usuario bloqueado" : "Usuario desbloqueado");
         }
 
         // ============================================================
-        // PUT: Activar / Inactivar usuario
+        // PATCH: Activar / Inactivar usuario
         // ============================================================
-        [HttpPut("activo/{id}")]
+
+        [HttpPatch("{id}/activo")]
         public async Task<ActionResult> CambiarActivo(string id, [FromBody] bool activo)
         {
-            log.setMensaje($"Cambiando estado ACTIVO del usuario {id}. Activo = {activo}");
-            log.informacion();
-
             var actividad = await _context.ActividadUsuarios.FindAsync(id);
-
-            if (actividad == null)
-            {
-                log.setMensaje($"ActividadUsuario no encontrada para ID {id}");
-                log.informacion();
-                return StatusCode(StatusCodes.Status404NotFound, "Actividad no encontrada");
-            }
+            if (actividad == null) return NotFound("Actividad no encontrada");
 
             actividad.Activo = activo;
-
             await _context.SaveChangesAsync();
 
-            log.setMensaje($"Usuario {id} ahora está {(activo ? "ACTIVO" : "INACTIVO")}");
-            log.informacion();
-
-            return StatusCode(StatusCodes.Status200OK,
-                activo ? "Usuario activado" : "Usuario inactivado");
+            return Ok(activo ? "Usuario activado" : "Usuario inactivado");
         }
-
 
         // ============================================================
         // DELETE
