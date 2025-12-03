@@ -11,16 +11,22 @@ namespace ApiConsultorio.Controllers
     public class AntecedentesMedicosController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly LogEventos log = new LogEventos();
 
         public AntecedentesMedicosController(ApplicationDbContext context)
         {
             _context = context;
         }
 
+        // ============================================================
         // GET: Listado de antecedentes
+        // ============================================================
         [HttpGet]
         public async Task<ActionResult> GetAntecedentes()
         {
+            log.setMensaje("Solicitando lista de antecedentes médicos...");
+            log.informacion();
+
             try
             {
                 var lista = await _context.AntecedentesMedicos
@@ -37,18 +43,30 @@ namespace ApiConsultorio.Controllers
                     })
                     .ToListAsync();
 
-                return Ok(lista);
+                log.setMensaje($"Total de antecedentes encontrados: {lista.Count}");
+                log.informacion();
+
+                return StatusCode(StatusCodes.Status200OK, lista);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Error al obtener los antecedentes.");
+                log.setMensaje("Error al obtener los antecedentes médicos");
+                log.informacion(ex);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Error al obtener los antecedentes.");
             }
         }
 
+        // ============================================================
         // GET: Antecedente por ID del Paciente
+        // ============================================================
         [HttpGet("paciente/{idPaciente}")]
         public async Task<ActionResult> GetAntecedentePorPaciente(int idPaciente)
         {
+            log.setMensaje($"Solicitando antecedentes para el paciente {idPaciente}");
+            log.informacion();
+
             try
             {
                 var antecedente = await _context.AntecedentesMedicos
@@ -65,22 +83,38 @@ namespace ApiConsultorio.Controllers
                     .FirstOrDefaultAsync();
 
                 if (antecedente == null)
-                    return NoContent();
+                {
+                    log.setMensaje("El paciente no tiene antecedentes registrados.");
+                    log.informacion();
+                    return StatusCode(StatusCodes.Status204NoContent);
+                }
 
-                return Ok(antecedente);
+                log.setMensaje("Antecedentes encontrados para el paciente.");
+                log.informacion();
+
+                return StatusCode(StatusCodes.Status200OK, antecedente);
             }
-            catch
+            catch (Exception ex)
             {
-                return StatusCode(500, "Error al obtener los antecedentes del paciente.");
+                log.setMensaje("Error al obtener antecedentes por paciente");
+                log.informacion(ex);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Error al obtener los antecedentes del paciente.");
             }
         }
 
+        // ============================================================
         // POST: Crear antecedentes
+        // ============================================================
         [HttpPost]
         public async Task<ActionResult> CrearAntecedente(CrearAntecedentesDTO dto)
         {
+            log.setMensaje("Creando nuevo antecedente médico...");
+            log.informacion();
+
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+                return StatusCode(StatusCodes.Status400BadRequest, ModelState);
 
             try
             {
@@ -96,25 +130,40 @@ namespace ApiConsultorio.Controllers
                 _context.AntecedentesMedicos.Add(antecedente);
                 await _context.SaveChangesAsync();
 
-                return CreatedAtAction(nameof(GetAntecedentePorPaciente),
-                    new { idPaciente = dto.ID_Paciente },
-                    "Antecedentes creados correctamente.");
+                log.setMensaje("Antecedentes creados correctamente.");
+                log.informacion();
+
+                return StatusCode(StatusCodes.Status201Created,
+                    new { mensaje = "Antecedentes creados correctamente." });
             }
-            catch
+            catch (Exception ex)
             {
-                return StatusCode(500, "Error al crear los antecedentes.");
+                log.setMensaje("Error al crear antecedentes médicos");
+                log.informacion(ex);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Error al crear los antecedentes.");
             }
         }
 
+        // ============================================================
         // PUT: Actualizar antecedentes
+        // ============================================================
         [HttpPut("{id}")]
         public async Task<ActionResult> ActualizarAntecedente(int id, CrearAntecedentesDTO dto)
         {
+            log.setMensaje($"Actualizando antecedente con ID {id}");
+            log.informacion();
+
             try
             {
                 var antecedente = await _context.AntecedentesMedicos.FindAsync(id);
                 if (antecedente == null)
-                    return NotFound("Antecedente no encontrado.");
+                {
+                    log.setMensaje("Antecedente no encontrado");
+                    log.informacion();
+                    return StatusCode(StatusCodes.Status404NotFound, "Antecedente no encontrado.");
+                }
 
                 antecedente.Alergias = dto.Alergias;
                 antecedente.Enfermedades_Cronicas = dto.Enfermedades_Cronicas;
@@ -122,32 +171,57 @@ namespace ApiConsultorio.Controllers
 
                 await _context.SaveChangesAsync();
 
-                return Ok("Antecedentes actualizados correctamente.");
+                log.setMensaje("Antecedente actualizado correctamente.");
+                log.informacion();
+
+                return StatusCode(StatusCodes.Status200OK,
+                    new { mensaje = "Antecedentes actualizados correctamente." });
             }
-            catch
+            catch (Exception ex)
             {
-                return StatusCode(500, "Error al actualizar los antecedentes.");
+                log.setMensaje("Error al actualizar antecedentes médicos");
+                log.informacion(ex);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Error al actualizar los antecedentes.");
             }
         }
 
+        // ============================================================
         // DELETE: Eliminar antecedentes
+        // ============================================================
         [HttpDelete("{id}")]
         public async Task<ActionResult> EliminarAntecedente(int id)
         {
+            log.setMensaje($"Eliminando antecedente con ID {id}");
+            log.informacion();
+
             try
             {
                 var antecedente = await _context.AntecedentesMedicos.FindAsync(id);
                 if (antecedente == null)
-                    return NotFound("Antecedente no encontrado.");
+                {
+                    log.setMensaje("Antecedente no encontrado");
+                    log.informacion();
+                    return StatusCode(StatusCodes.Status404NotFound, "Antecedente no encontrado.");
+                }
 
                 _context.AntecedentesMedicos.Remove(antecedente);
                 await _context.SaveChangesAsync();
 
-                return Ok("Antecedentes eliminados correctamente.");
+                log.setMensaje("Antecedente eliminado correctamente.");
+                log.informacion();
+
+                return StatusCode(StatusCodes.Status200OK,
+                    new { mensaje = "Antecedentes eliminados correctamente." });
             }
-            catch
+            catch (Exception ex)
             {
-                return StatusCode(500, "Error al eliminar los antecedentes.");
+                log.setMensaje("Error al eliminar antecedente médico");
+                log.informacion(ex);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Error al eliminar los antecedentes.");
             }
         }
     }

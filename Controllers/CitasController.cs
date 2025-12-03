@@ -11,7 +11,7 @@ namespace ApiConsultorio.Controllers
     public class CitasController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        private readonly LogEventos _log = new LogEventos();
+        private readonly LogEventos log = new LogEventos();
 
         public CitasController(ApplicationDbContext context)
         {
@@ -26,8 +26,8 @@ namespace ApiConsultorio.Controllers
         {
             try
             {
-                _log.setMensaje("Intentando obtener listado de citas...");
-                _log.informacion();
+                log.setMensaje("Intentando obtener listado de citas...");
+                log.informacion();
 
                 var lista = await _context.Citas
                     .Include(c => c.Paciente)
@@ -52,7 +52,7 @@ namespace ApiConsultorio.Controllers
             }
             catch (Exception ex)
             {
-                _log.informacion(ex);
+                log.informacion(ex);
                 return StatusCode(500, "Error interno del servidor.");
             }
         }
@@ -65,8 +65,8 @@ namespace ApiConsultorio.Controllers
         {
             try
             {
-                _log.setMensaje("Intentando crear una cita...");
-                _log.informacion();
+                log.setMensaje("Intentando crear una cita...");
+                log.informacion();
 
                 var cita = new Cita
                 {
@@ -84,7 +84,7 @@ namespace ApiConsultorio.Controllers
             }
             catch (Exception ex)
             {
-                _log.informacion(ex);
+                log.informacion(ex);
                 return StatusCode(500, "Error al crear la cita.");
             }
         }
@@ -97,14 +97,14 @@ namespace ApiConsultorio.Controllers
         {
             try
             {
-                _log.setMensaje($"Intentando cambiar estado de la cita {id}...");
-                _log.informacion();
+                log.setMensaje($"Intentando cambiar estado de la cita {id}...");
+                log.informacion();
 
                 var cita = await _context.Citas.FindAsync(id);
                 if (cita == null)
                 {
-                    _log.setMensaje($"Cita {id} no encontrada.");
-                    _log.informacion();
+                    log.setMensaje($"Cita {id} no encontrada.");
+                    log.informacion();
                     return NotFound("La cita no existe.");
                 }
 
@@ -116,7 +116,7 @@ namespace ApiConsultorio.Controllers
             }
             catch (Exception ex)
             {
-                _log.informacion(ex);
+                log.informacion(ex);
                 return StatusCode(500, "Error al cambiar el estado de la cita.");
             }
         }
@@ -126,6 +126,8 @@ namespace ApiConsultorio.Controllers
         {
             try
             {
+                log.setMensaje($"Intentando obtener citas para registar atencion médica");
+                log.informacion();
                 var citas = await _context.Citas
                     .Include(c => c.Paciente)
                     .Include(c => c.Medico)
@@ -144,6 +146,8 @@ namespace ApiConsultorio.Controllers
                         c.Hora_Cita
                     })
                     .ToListAsync();
+                log.setMensaje($"Citas para registar atencion médica obtenidas");
+                log.informacion();
 
                 return Ok(citas);
             }
@@ -161,8 +165,8 @@ namespace ApiConsultorio.Controllers
         {
             try
             {
-                _log.setMensaje($"Obteniendo citas del médico {idMedico}...");
-                _log.informacion();
+                log.setMensaje($"Obteniendo citas del médico {idMedico}...");
+                log.informacion();
 
                 var citas = await _context.Citas
                     .Where(c => c.ID_Medico == idMedico)
@@ -181,15 +185,15 @@ namespace ApiConsultorio.Controllers
                         ID_Estado_Cita = c.ID_Estado_Cita
                     })
                     .ToListAsync();
-
+                log.setMensaje($"Se obtuvieron citas del médico {idMedico}...");
+                log.informacion();
                 return Ok(citas);
             }
             catch (Exception ex)
             {
-                _log.informacion(ex);
+                log.informacion(ex);
                 return StatusCode(500, "Error interno del servidor.");
             }
         }
-
     }
 }

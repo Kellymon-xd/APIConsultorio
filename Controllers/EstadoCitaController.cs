@@ -12,6 +12,7 @@ namespace ApiConsultorio.Controllers
     public class EstadoCitaController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly LogEventos log = new LogEventos();
 
         public EstadoCitaController(ApplicationDbContext context)
         {
@@ -22,15 +23,32 @@ namespace ApiConsultorio.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EstadoCitaComboDTO>>> GetEstados()
         {
-            var estados = await _context.EstadoCita
-                .Select(e => new EstadoCitaComboDTO
-                {
-                    ID_Estado_Cita = e.ID_Estado_Cita,
-                    Descripcion = e.Descripcion
-                })
-                .ToListAsync();
+            log.setMensaje("Solicitando lista de estados de cita...");
+            log.informacion();
 
-            return Ok(estados);
+            try
+            {
+                var estados = await _context.EstadoCita
+                    .Select(e => new EstadoCitaComboDTO
+                    {
+                        ID_Estado_Cita = e.ID_Estado_Cita,
+                        Descripcion = e.Descripcion
+                    })
+                    .ToListAsync();
+
+                log.setMensaje($"Total de estados de cita encontrados: {estados.Count}");
+                log.informacion();
+
+                return StatusCode(StatusCodes.Status200OK, estados);
+            }
+            catch (Exception ex)
+            {
+                log.setMensaje("Error al obtener los estados de cita");
+                log.informacion(ex);
+
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    "Error interno del servidor.");
+            }
         }
     }
 }
