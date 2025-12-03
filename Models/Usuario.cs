@@ -18,6 +18,7 @@ namespace ApiConsultorio.Models
         public string Apellido { get; set; }
 
         [Required, StringLength(255)]
+        [EmailAddress]
         public string Email { get; set; }
 
         [Required, StringLength(30)]

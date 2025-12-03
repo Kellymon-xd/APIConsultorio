@@ -22,6 +22,7 @@ namespace ApiConsultorio.Models
         public string Cedula { get; set; }
 
         [StringLength(255)]
+        [EmailAddress]
         public string? Email { get; set; }
 
         [StringLength(30)]

@@ -171,44 +171,6 @@ namespace ApiConsultorio.Controllers
         }
 
         // ============================================================
-        // DELETE: Eliminar médico
-        // ============================================================
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> EliminarMedico(int id)
-        {
-            log.setMensaje($"Intentando eliminar médico {id}");
-            log.informacion();
-
-            var medico = await _context.Medicos.FindAsync(id);
-
-            if (medico == null)
-            {
-                log.setMensaje($"No se encontró el médico con ID {id}");
-                log.informacion();
-                return StatusCode(StatusCodes.Status404NotFound, "Médico no encontrado");
-            }
-
-            _context.Medicos.Remove(medico);
-            await _context.SaveChangesAsync();
-
-            log.setMensaje($"Médico {id} eliminado");
-            log.informacion();
-
-            return StatusCode(StatusCodes.Status200OK, "Médico eliminado");
-        }
-
-
-        // ============================================================
-        // HASH 
-        // ============================================================
-        private static string HashSHA256(string input)
-        {
-            using var sha = SHA256.Create();
-            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
-            return BitConverter.ToString(bytes).Replace("-", "").ToLower();
-        }
-
-        // ============================================================
         // GET: Listar médicos
         // ============================================================
         [HttpGet("combo")]
