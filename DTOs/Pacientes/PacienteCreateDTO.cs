@@ -1,4 +1,5 @@
-﻿
+﻿namespace ApiConsultorio.DTOs
+{
     public class PacienteCreateDto
     {
         public string Nombre { get; set; }
@@ -11,3 +12,4 @@
         public string? Direccion { get; set; }
         public string? ContactoEmergencia { get; set; }
     }
+}

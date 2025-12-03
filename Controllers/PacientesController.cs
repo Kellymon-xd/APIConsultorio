@@ -2,6 +2,7 @@
 using ApiConsultorio.Contexts;
 using ApiConsultorio.Models;
 using Microsoft.EntityFrameworkCore;
+using ApiConsultorio.DTOs;
 
 namespace APIConsultorio.Controllers
 {

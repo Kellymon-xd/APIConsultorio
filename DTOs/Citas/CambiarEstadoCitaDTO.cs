@@ -1,4 +1,7 @@
-﻿public class CambiarEstadoCitaDTO
+﻿namespace ApiConsultorio.DTOs
 {
-    public int ID_Estado_Cita { get; set; }
+    public class CambiarEstadoCitaDTO
+    {
+        public int ID_Estado_Cita { get; set; }
+    }
 }

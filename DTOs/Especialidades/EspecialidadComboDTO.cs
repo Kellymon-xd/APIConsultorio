@@ -1,5 +1,8 @@
-﻿public class EspecialidadComboDTO
+﻿namespace ApiConsultorio.DTOs
 {
-    public int ID_Especialidad { get; set; }
-    public string Nombre_Especialidad { get; set; }
+    public class EspecialidadComboDTO
+    {
+        public int ID_Especialidad { get; set; }
+        public string Nombre_Especialidad { get; set; }
+    }
 }

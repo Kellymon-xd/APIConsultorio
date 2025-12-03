@@ -1,5 +1,8 @@
-﻿public class LoginDTO
+﻿namespace ApiConsultorio.DTOs
 {
-    public string Email { get; set; }
-    public string Contrasena { get; set; }
+    public class LoginDTO
+    {
+        public string Email { get; set; }
+        public string Contrasena { get; set; }
+    }
 }

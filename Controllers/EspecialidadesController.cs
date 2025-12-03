@@ -1,4 +1,5 @@
 ﻿using ApiConsultorio.Contexts;
+using ApiConsultorio.DTOs;
 using ApiConsultorio.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
